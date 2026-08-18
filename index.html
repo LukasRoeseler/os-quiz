@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Open Science Quiz</title>
+<style>
+  :root {
+    --os-text: #2b333c;
+    --os-text-secondary: #6c7884;
+    --os-border: #d9e0e6;
+    --os-bg-subtle: #f4f7f9;
+    --os-track: #e8eef2;
+    --os-white: #ffffff;
+    --os-accent: #1583ad;
+    --os-accent-hover: #0f6f96;
+    --os-accent-bar: #1BA3D1;
+    --os-warning-bg: #fdf3e0;
+    --os-warning-border: #e8b84b;
+    --os-warning-text: #7a4a00;
+    --os-success: #2f8f4e;
+    --os-success-bg: #eaf6ee;
+    --os-danger: #b23a3a;
+    --os-danger-bg: #fbecec;
+  }
+
+  * , *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    background: var(--os-bg-subtle);
+    color: var(--os-text);
+    line-height: 1.5;
+  }
+
+  #app {
+    min-height: 100dvh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header.os-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.5rem;
+    background: var(--os-white);
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--os-text);
+    white-space: nowrap;
+  }
+  .os-brand small {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--os-accent);
+    margin-top: 1px;
+  }
+
+  .os-header-stats {
+    display: flex;
+    gap: 1.25rem;
+    align-items: baseline;
+  }
+  .os-header-stat {
+    text-align: right;
+  }
+  .os-header-stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--os-text-secondary);
+  }
+  .os-header-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--os-text);
+  }
+
+  .os-progress-track {
+    flex: 0 0 auto;
+    height: 4px;
+    background: var(--os-track);
+  }
+  .os-progress-fill {
+    height: 100%;
+    background: var(--os-accent-bar);
+    transition: width 0.25s ease;
+  }
+
+  main.os-main {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem 1rem 2.5rem;
+    overflow-y: auto;
+  }
+
+  .os-card {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 1rem;
+  }
+
+  .os-panel {
+    background: var(--os-white);
+    border: 1px solid var(--os-border);
+    border-radius: 8px;
+    padding: 1.6rem 1.6rem;
+  }
+
+  .os-intro {
+    position: relative;
+    overflow: hidden;
+    background: var(--os-bg-subtle);
+    border: 1px solid var(--os-border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem 1.2rem 1.5rem;
+    margin-bottom: 1.4rem;
+    font-size: 13.5px;
+    color: var(--os-text);
+  }
+  .os-intro::before {
+    content: "";
+    position: absolute; top: 0; left: 0; bottom: 0; width: 5px;
+    background: var(--os-accent-bar);
+  }
+  .os-intro p { margin: 0 0 0.7rem; }
+  .os-intro p:last-child { margin-bottom: 0; }
+
+  h1.os-title {
+    font-size: 22px;
+    margin: 0 0 0.3rem;
+    color: var(--os-text);
+  }
+  p.os-subtitle {
+    font-size: 13.5px;
+    color: var(--os-text-secondary);
+    margin: 0 0 1.4rem;
+  }
+
+  label.os-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--os-text-secondary);
+    margin-bottom: 0.4rem;
+  }
+
+  input.os-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #b9c4cd;
+    border-radius: 4px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--os-text);
+    background: var(--os-white);
+    outline: none;
+  }
+  input.os-input:focus { border-color: var(--os-accent); }
+
+  .os-privacy-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--os-warning-bg);
+    border: 1px solid var(--os-warning-border);
+    border-radius: 5px;
+    padding: 0.7rem 1rem;
+    margin: 1.1rem 0 1.4rem;
+    font-size: 12px;
+    color: var(--os-warning-text);
+  }
+
+  button.os-btn-primary {
+    all: unset;
+    display: inline-block;
+    padding: 11px 26px;
+    background: var(--os-accent);
+    color: var(--os-white);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.12s;
+  }
+  button.os-btn-primary:hover { background: var(--os-accent-hover); }
+  button.os-btn-primary:disabled {
+    background: #b9c4cd;
+    cursor: not-allowed;
+  }
+
+  button.os-btn-secondary {
+    all: unset;
+    display: inline-block;
+    padding: 10px 22px;
+    background: var(--os-white);
+    color: var(--os-accent);
+    border: 1.5px solid var(--os-accent);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+  }
+  button.os-btn-secondary:hover { background: var(--os-bg-subtle); }
+
+  .os-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 0.4rem; }
+
+  .os-category-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--os-accent);
+    background: var(--os-bg-subtle);
+    border: 1px solid var(--os-border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    margin-bottom: 0.9rem;
+  }
+
+  .os-difficulty {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--os-text-secondary);
+    margin-left: 8px;
+  }
+
+  .os-question-text {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--os-text);
+    margin: 0 0 1.2rem;
+  }
+
+  .os-multi-hint {
+    font-size: 12px;
+    color: var(--os-text-secondary);
+    font-style: italic;
+    margin: -0.7rem 0 1rem;
+  }
+
+  .os-choices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.3rem; }
+
+  button.os-choice {
+    all: unset;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 16px;
+    border: 1.5px solid var(--os-border);
+    border-radius: 6px;
+    background: var(--os-white);
+    font-family: inherit;
+    font-size: 14.5px;
+    color: var(--os-text);
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  button.os-choice:hover { border-color: var(--os-accent); }
+  button.os-choice.selected {
+    border-color: var(--os-accent);
+    background: #eaf5fa;
+  }
+  button.os-choice.correct {
+    border-color: var(--os-success);
+    background: var(--os-success-bg);
+  }
+  button.os-choice.incorrect {
+    border-color: var(--os-danger);
+    background: var(--os-danger-bg);
+  }
+  button.os-choice:disabled { cursor: default; }
+
+  .os-choice-letter {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--os-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--os-text-secondary);
+  }
+  button.os-choice.selected .os-choice-letter {
+    border-color: var(--os-accent);
+    color: var(--os-accent);
+  }
+  button.os-choice.correct .os-choice-letter {
+    border-color: var(--os-success);
+    color: var(--os-success);
+  }
+  button.os-choice.incorrect .os-choice-letter {
+    border-color: var(--os-danger);
+    color: var(--os-danger);
+  }
+
+  .os-feedback {
+    border-radius: 6px;
+    padding: 0.9rem 1.1rem;
+    font-size: 13.5px;
+    margin-bottom: 1.2rem;
+  }
+  .os-feedback.correct { background: var(--os-success-bg); color: #1d5c33; border: 1px solid #bfe3cb; }
+  .os-feedback.incorrect { background: var(--os-danger-bg); color: #7a2727; border: 1px solid #e9c3c3; }
+  .os-feedback-title { font-weight: 700; margin-bottom: 0.3rem; }
+
+  .os-streak-note {
+    font-size: 12px;
+    color: var(--os-accent);
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  /* Results screen */
+  .os-summary {
+    background: var(--os-white);
+    border: 2px solid var(--os-accent);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(21,131,173,0.09);
+  }
+  .os-summary-header {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--os-accent); margin-bottom: 0.9rem;
+  }
+  .os-stats { display: flex; gap: 0; flex-wrap: wrap; }
+  .os-stat { padding-right: 1.6rem; margin-right: 1.6rem; border-right: 1px solid var(--os-border); margin-bottom: 0.5rem; }
+  .os-stat:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+  .os-stat-label { font-size: 11px; color: var(--os-text-secondary); margin-bottom: 1px; white-space: nowrap; }
+  .os-stat-value { font-size: 30px; font-weight: 700; color: var(--os-text); line-height: 1.1; }
+  .os-stat-unit { font-size: 13px; font-weight: 400; color: var(--os-text-secondary); margin-left: 2px; }
+
+  .os-section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--os-text-secondary);
+    margin: 1.6rem 0 0.8rem;
+  }
+
+  .os-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .os-bar-label { flex: 0 0 auto; width: 168px; font-size: 12.5px; color: var(--os-text); }
+  .os-bar-track { flex: 1 1 auto; height: 12px; background: var(--os-track); border-radius: 6px; overflow: hidden; }
+  .os-bar-fill { height: 100%; background: var(--os-accent-bar); border-radius: 6px; }
+  .os-bar-pct { flex: 0 0 auto; width: 38px; text-align: right; font-size: 12px; font-weight: 700; color: var(--os-text-secondary); }
+
+  table.os-leaderboard {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.os-leaderboard th {
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--os-text-secondary);
+    background: var(--os-bg-subtle);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--os-border);
+  }
+  table.os-leaderboard td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--os-border);
+  }
+  table.os-leaderboard tr.os-me td { font-weight: 700; background: #eaf5fa; }
+
+  .os-info-note {
+    font-size: 12.5px;
+    color: var(--os-text-secondary);
+    font-style: italic;
+    padding: 0.7rem 0;
+  }
+
+  @media (max-width: 600px) {
+    header.os-header { padding: 0.7rem 1rem; }
+    .os-brand { font-size: 13px; }
+    .os-header-stats { gap: 0.9rem; }
+    .os-header-stat-value { font-size: 15px; }
+    main.os-main { padding: 1rem 0.75rem 2rem; }
+    .os-panel { padding: 1.2rem 1.1rem; }
+    h1.os-title { font-size: 19px; }
+    .os-question-text { font-size: 15.5px; }
+    .os-bar-label { width: 108px; font-size: 11.5px; }
+    .os-stat-value { font-size: 24px; }
+    .os-stat { padding-right: 1rem; margin-right: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="questions.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // Injected at Pages build time by .github/workflows/deploy.yml.
+  // Left as-is, the app runs fully in local demo mode.
+  const SHEET_WEBHOOK_URL = '__SHEET_WEBHOOK_URL__';
+
+  function isSheetConfigured() {
+    return typeof SHEET_WEBHOOK_URL === 'string' && SHEET_WEBHOOK_URL.length > 0 && !SHEET_WEBHOOK_URL.startsWith('__');
+  }
+
+  const DIFFICULTY_POINTS = { leicht: 1, mittel: 2, schwer: 3 };
+
+  function getSessionId() {
+    let id = localStorage.getItem('osQuizSessionId');
+    if (!id) {
+      id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+      localStorage.setItem('osQuizSessionId', id);
+    }
+    return id;
+  }
+
+  function shuffledOrder(n) {
+    // Fixed question set, but presented in a stable per-visitor shuffle so
+    // browsing the DOM source doesn't trivially reveal answer order.
+    const arr = Array.from({ length: n }, (_, i) => i);
+    let seed = 0;
+    const sid = getSessionId();
+    for (let i = 0; i < sid.length; i++) seed = (seed * 31 + sid.charCodeAt(i)) >>> 0;
+    for (let i = arr.length - 1; i > 0; i--) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      const j = seed % (i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  const QUESTIONS = window.OS_QUIZ_QUESTIONS || [];
+  const CATEGORIES = window.OS_QUIZ_CATEGORIES || [];
+  const MAX_SCORE = QUESTIONS.reduce((sum, q) => sum + DIFFICULTY_POINTS[q.difficulty], 0);
+
+  const state = {
+    screen: 'start',
+    nickname: '',
+    order: [],
+    index: 0,
+    selected: new Set(),
+    locked: false,
+    score: 0,
+    streak: 0,
+    perCategory: {},
+    startTime: null,
+    percentile: null,
+    leaderboard: null,
+    leaderboardStatus: 'idle', // idle | loading | ready | unavailable
+  };
+
+  const app = document.getElementById('app');
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(k => {
+        if (k === 'class') node.className = attrs[k];
+        else if (k === 'text') node.textContent = attrs[k];
+        else if (k.startsWith('on') && typeof attrs[k] === 'function') node.addEventListener(k.slice(2), attrs[k]);
+        else if (typeof attrs[k] === 'boolean') { if (attrs[k]) node.setAttribute(k, ''); else node.removeAttribute(k); }
+        else node.setAttribute(k, attrs[k]);
+      });
+    }
+    (children || []).forEach(c => { if (c) node.appendChild(c); });
+    return node;
+  }
+
+  function render() {
+    app.innerHTML = '';
+    if (state.screen === 'start') app.appendChild(renderStart());
+    else if (state.screen === 'quiz') app.appendChild(renderQuiz());
+    else app.appendChild(renderResults());
+  }
+
+  function renderStart() {
+    const wrap = el('div', { id: 'app-start' }, [
+      el('header', { class: 'os-header' }, [
+        el('div', { class: 'os-brand' }, [
+          document.createTextNode('Open Science Quiz'),
+          el('small', { text: 'MüCOS · Universität Münster' }),
+        ]),
+      ]),
+      el('main', { class: 'os-main' }, [
+        el('div', { class: 'os-card' }, [
+          el('div', { class: 'os-panel' }, [
+            el('h1', { class: 'os-title', text: 'Open Science Quiz' }),
+            el('p', { class: 'os-subtitle', text: `${QUESTIONS.length} Fragen · Konzepte, Forschungsplanung, Materialien & Daten, Veröffentlichung, Kommunikation` }),
+            el('div', { class: 'os-intro' }, [
+              el('p', { text: 'Ein anspruchsvolles Multiple-Choice-Quiz auf Basis des Open-Science-Buchs und der MüCOS-Infomodule der Universität Münster.' }),
+              el('p', { text: 'Alle Teilnehmenden erhalten dasselbe Fragenset — so bleibt der Vergleich mit dem Leaderboard und der eigenen Perzentile fair.' }),
+            ]),
+            el('label', { class: 'os-label', for: 'os-nickname-input', text: 'Ihr Spitzname für das Leaderboard' }),
+            (function () {
+              const input = el('input', { class: 'os-input', id: 'os-nickname-input', type: 'text', maxlength: '30', placeholder: 'z. B. OpenOwl42' });
+              input.value = state.nickname;
+              input.addEventListener('input', e => { state.nickname = e.target.value; });
+              input.addEventListener('keydown', e => { if (e.key === 'Enter') startQuiz(); });
+              setTimeout(() => input.focus(), 0);
+              return input;
+            })(),
+            el('div', { class: 'os-privacy-note' }, [
+              el('div', { text: 'Gespeichert werden nur Ihr Spitzname, Ihr Ergebnis und die Bearbeitungsdauer — keine weiteren personenbezogenen Daten. Ein Klarname ist nicht nötig.' }),
+            ]),
+            el('div', { class: 'os-btn-row' }, [
+              el('button', { class: 'os-btn-primary', text: 'Quiz starten', onclick: startQuiz }),
+            ]),
+          ]),
+        ]),
+      ]),
+    ]);
+    return wrap;
+  }
+
+  function startQuiz() {
+    const name = state.nickname.trim();
+    if (!name) {
+      const input = document.getElementById('os-nickname-input');
+      if (input) { input.style.borderColor = 'var(--os-danger, #b23a3a)'; input.focus(); }
+      return;
+    }
+    state.nickname = name;
+    state.order = shuffledOrder(QUESTIONS.length);
+    state.index = 0;
+    state.selected = new Set();
+    state.locked = false;
+    state.score = 0;
+    state.streak = 0;
+    state.perCategory = {};
+    CATEGORIES.forEach(c => { state.perCategory[c] = { score: 0, max: 0 }; });
+    state.startTime = Date.now();
+    state.screen = 'quiz';
+    render();
+  }
+
+  function currentQuestion() {
+    return QUESTIONS[state.order[state.index]];
+  }
+
+  function renderQuiz() {
+    const q = currentQuestion();
+    const total = QUESTIONS.length;
+    const progressPct = Math.round((state.index / total) * 100);
+    const isMulti = q.correct.length > 1;
+
+    const choiceButtons = q.choices.map((choiceText, i) => {
+      const letter = String.fromCharCode(65 + i);
+      const btn = el('button', { class: 'os-choice', type: 'button' }, [
+        el('span', { class: 'os-choice-letter', text: letter }),
+        el('span', { text: choiceText }),
+      ]);
+      if (state.selected.has(i)) btn.classList.add('selected');
+      if (state.locked) {
+        btn.disabled = true;
+        const isCorrectChoice = q.correct.includes(i);
+        if (isCorrectChoice) btn.classList.add('correct');
+        else if (state.selected.has(i)) btn.classList.add('incorrect');
+      } else {
+        btn.addEventListener('click', () => toggleChoice(i, isMulti));
+      }
+      return btn;
+    });
+
+    const bodyChildren = [
+      el('span', { class: 'os-category-badge', text: q.category }, []),
+      el('span', { class: 'os-difficulty', text: '· ' + q.difficulty.toUpperCase() }),
+      el('h2', { class: 'os-question-text', text: q.question }),
+    ];
+    if (isMulti) bodyChildren.push(el('p', { class: 'os-multi-hint', text: 'Mehrere Antworten möglich.' }));
+    bodyChildren.push(el('div', { class: 'os-choices' }, choiceButtons));
+
+    if (state.locked) {
+      const wasCorrect = setsEqual(state.selected, new Set(q.correct));
+      bodyChildren.push(el('div', { class: 'os-feedback ' + (wasCorrect ? 'correct' : 'incorrect') }, [
+        el('div', { class: 'os-feedback-title', text: wasCorrect ? 'Richtig!' : 'Nicht ganz.' }),
+        el('div', { text: q.explanation }),
+      ]));
+      if (state.streak >= 3 && wasCorrect) {
+        bodyChildren.push(el('div', { class: 'os-streak-note', text: `Serie: ${state.streak} richtige Antworten in Folge.` }));
+      }
+      bodyChildren.push(el('div', { class: 'os-btn-row' }, [
+        el('button', { class: 'os-btn-primary', text: state.index + 1 < total ? 'Weiter' : 'Ergebnis anzeigen', onclick: nextQuestion }),
+      ]));
+    } else {
+      bodyChildren.push(el('div', { class: 'os-btn-row' }, [
+        el('button', { class: 'os-btn-primary', text: 'Antwort bestätigen', disabled: state.selected.size === 0, onclick: submitAnswer }),
+      ]));
+    }
+
+    return el('div', {}, [
+      el('header', { class: 'os-header' }, [
+        el('div', { class: 'os-brand', text: `Frage ${state.index + 1} von ${total}` }),
+        el('div', { class: 'os-header-stats' }, [
+          el('div', { class: 'os-header-stat' }, [
+            el('div', { class: 'os-header-stat-label', text: 'Punkte' }),
+            el('div', { class: 'os-header-stat-value', text: `${state.score} / ${MAX_SCORE}` }),
+          ]),
+          el('div', { class: 'os-header-stat' }, [
+            el('div', { class: 'os-header-stat-label', text: 'Serie' }),
+            el('div', { class: 'os-header-stat-value', text: String(state.streak) }),
+          ]),
+        ]),
+      ]),
+      el('div', { class: 'os-progress-track' }, [
+        el('div', { class: 'os-progress-fill', style: `width:${progressPct}%` }),
+      ]),
+      el('main', { class: 'os-main' }, [
+        el('div', { class: 'os-card' }, [
+          el('div', { class: 'os-panel' }, bodyChildren),
+        ]),
+      ]),
+    ]);
+  }
+
+  function toggleChoice(i, isMulti) {
+    if (state.locked) return;
+    if (isMulti) {
+      if (state.selected.has(i)) state.selected.delete(i);
+      else state.selected.add(i);
+    } else {
+      state.selected = new Set([i]);
+    }
+    render();
+  }
+
+  function setsEqual(a, b) {
+    if (a.size !== b.size) return false;
+    for (const v of a) if (!b.has(v)) return false;
+    return true;
+  }
+
+  function submitAnswer() {
+    if (state.selected.size === 0) return;
+    const q = currentQuestion();
+    const correctSet = new Set(q.correct);
+    const wasCorrect = setsEqual(state.selected, correctSet);
+    const points = DIFFICULTY_POINTS[q.difficulty];
+    const cat = state.perCategory[q.category] || (state.perCategory[q.category] = { score: 0, max: 0 });
+    cat.max += points;
+    if (wasCorrect) {
+      state.score += points;
+      cat.score += points;
+      state.streak += 1;
+    } else {
+      state.streak = 0;
+    }
+    state.locked = true;
+    render();
+  }
+
+  function nextQuestion() {
+    if (state.index + 1 < QUESTIONS.length) {
+      state.index += 1;
+      state.selected = new Set();
+      state.locked = false;
+      render();
+    } else {
+      finishQuiz();
+    }
+  }
+
+  function finishQuiz() {
+    state.screen = 'result';
+    state.durationSeconds = Math.round((Date.now() - state.startTime) / 1000);
+    state.percentScore = Math.round((state.score / MAX_SCORE) * 100);
+    state.percentile = null;
+    state.leaderboard = null;
+    state.leaderboardStatus = isSheetConfigured() ? 'loading' : 'unavailable';
+    render();
+    if (isSheetConfigured()) loadLeaderboardThenLog();
+  }
+
+  function loadLeaderboardThenLog() {
+    fetch(SHEET_WEBHOOK_URL)
+      .then(r => r.json())
+      .then(data => {
+        const attempts = (data && Array.isArray(data.attempts)) ? data.attempts : [];
+        const priorScores = attempts.map(a => Number(a.percentScore)).filter(n => !isNaN(n));
+        const below = priorScores.filter(s => s < state.percentScore).length;
+        state.percentile = priorScores.length > 0 ? Math.round((below / priorScores.length) * 100) : 100;
+
+        const board = attempts
+          .map(a => ({ nickname: a.nickname, percentScore: Number(a.percentScore), durationSeconds: Number(a.durationSeconds) || 0 }))
+          .filter(a => !isNaN(a.percentScore));
+        board.push({ nickname: state.nickname, percentScore: state.percentScore, durationSeconds: state.durationSeconds, isMe: true });
+        board.sort((a, b) => b.percentScore - a.percentScore || a.durationSeconds - b.durationSeconds);
+        state.leaderboard = board.slice(0, 10);
+        state.leaderboardStatus = 'ready';
+        render();
+      })
+      .catch(() => {
+        state.leaderboardStatus = 'unavailable';
+        render();
+      })
+      .finally(() => {
+        postAttempt();
+      });
+  }
+
+  function postAttempt() {
+    if (!isSheetConfigured()) return;
+    const payload = {
+      timestamp: new Date().toISOString(),
+      sessionId: getSessionId(),
+      nickname: state.nickname,
+      totalScore: state.score,
+      maxScore: MAX_SCORE,
+      percentScore: state.percentScore,
+      durationSeconds: state.durationSeconds,
+      categoryScoresJson: JSON.stringify(state.perCategory),
+    };
+    fetch(SHEET_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
+
+  function renderResults() {
+    const bars = CATEGORIES
+      .filter(c => state.perCategory[c] && state.perCategory[c].max > 0)
+      .map(c => {
+        const cat = state.perCategory[c];
+        const pct = Math.round((cat.score / cat.max) * 100);
+        return el('div', { class: 'os-bar-row' }, [
+          el('div', { class: 'os-bar-label', text: c }),
+          el('div', { class: 'os-bar-track' }, [
+            el('div', { class: 'os-bar-fill', style: `width:${pct}%` }),
+          ]),
+          el('div', { class: 'os-bar-pct', text: pct + '%' }),
+        ]);
+      });
+
+    const summaryChildren = [
+      el('div', { class: 'os-summary-header', text: 'Ihr Ergebnis' }),
+      el('div', { class: 'os-stats' }, [
+        el('div', { class: 'os-stat' }, [
+          el('div', { class: 'os-stat-label', text: 'Punkte' }),
+          el('div', { class: 'os-stat-value' }, [document.createTextNode(`${state.score}/${MAX_SCORE}`)]),
+        ]),
+        el('div', { class: 'os-stat' }, [
+          el('div', { class: 'os-stat-label', text: 'Prozent' }),
+          el('div', { class: 'os-stat-value' }, [document.createTextNode(state.percentScore + '%')]),
+        ]),
+        el('div', { class: 'os-stat' }, [
+          el('div', { class: 'os-stat-label', text: 'Perzentile' }),
+          el('div', { class: 'os-stat-value' }, [
+            document.createTextNode(state.percentile === null ? '–' : `${state.percentile}%`),
+          ]),
+        ]),
+        el('div', { class: 'os-stat' }, [
+          el('div', { class: 'os-stat-label', text: 'Dauer' }),
+          el('div', { class: 'os-stat-value' }, [document.createTextNode(formatDuration(state.durationSeconds))]),
+        ]),
+      ]),
+    ];
+    if (state.percentile !== null) {
+      summaryChildren.push(el('p', { class: 'os-info-note', text: `Besser als ${state.percentile}% der bisherigen Teilnehmenden.` }));
+    } else if (state.leaderboardStatus === 'loading') {
+      summaryChildren.push(el('p', { class: 'os-info-note', text: 'Perzentile wird berechnet …' }));
+    } else if (state.leaderboardStatus === 'unavailable') {
+      summaryChildren.push(el('p', { class: 'os-info-note', text: 'Noch nicht mit einem Google Sheet verbunden — Perzentile und Leaderboard sind im Demo-Modus nicht verfügbar.' }));
+    }
+
+    const leaderboardSection = [
+      el('div', { class: 'os-section-title', text: 'Leaderboard (Top 10)' }),
+    ];
+    if (state.leaderboardStatus === 'ready' && state.leaderboard) {
+      const rows = state.leaderboard.map((row, i) => el('tr', { class: row.isMe ? 'os-me' : '' }, [
+        el('td', { text: String(i + 1) }),
+        el('td', { text: row.nickname || '–' }),
+        el('td', { text: row.percentScore + '%' }),
+      ]));
+      leaderboardSection.push(el('table', { class: 'os-leaderboard' }, [
+        el('thead', {}, [el('tr', {}, [
+          el('th', { text: '#' }), el('th', { text: 'Spitzname' }), el('th', { text: 'Ergebnis' }),
+        ])]),
+        el('tbody', {}, rows),
+      ]));
+    } else if (state.leaderboardStatus === 'loading') {
+      leaderboardSection.push(el('p', { class: 'os-info-note', text: 'Leaderboard wird geladen …' }));
+    } else {
+      leaderboardSection.push(el('p', { class: 'os-info-note', text: 'Leaderboard aktuell nicht verfügbar.' }));
+    }
+
+    return el('div', {}, [
+      el('header', { class: 'os-header' }, [
+        el('div', { class: 'os-brand' }, [
+          document.createTextNode('Open Science Quiz'),
+          el('small', { text: 'Ergebnis' }),
+        ]),
+      ]),
+      el('main', { class: 'os-main' }, [
+        el('div', { class: 'os-card' }, [
+          el('div', { class: 'os-summary' }, summaryChildren),
+          el('div', { class: 'os-panel' }, [
+            el('div', { class: 'os-section-title', text: 'Ergebnis nach Kategorie' }),
+            ...bars,
+            ...leaderboardSection,
+            el('div', { class: 'os-btn-row', style: 'margin-top:1.5rem' }, [
+              el('button', { class: 'os-btn-primary', text: 'Nochmal spielen', onclick: () => { state.screen = 'start'; render(); } }),
+            ]),
+          ]),
+        ]),
+      ]),
+    ]);
+  }
+
+  function formatDuration(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
