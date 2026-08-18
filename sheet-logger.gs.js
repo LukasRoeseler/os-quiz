@@ -1,4 +1,4 @@
-// Google Apps Script — paste this into Extensions > Apps Script on the target
+// Google Apps Script: paste this into Extensions > Apps Script on the target
 // Google Sheet, then Deploy > New deployment > type "Web app" > execute as
 // "Me" > access "Anyone" > Deploy. Copy the resulting URL (ends in /exec)
 // into the SHEET_WEBHOOK_URL constant near the top of os_quiz/index.html
