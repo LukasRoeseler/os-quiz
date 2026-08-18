@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MüCOS Open Science: Presenter</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="stylesheet" href="style.css">
+<style>
+  .pv-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center; z-index: 20;
+  }
+  .pv-overlay-panel {
+    background: #1c222a; border-radius: 8px; padding: 1.2rem; width: 90%; max-width: 520px; max-height: 80vh;
+    display: flex; flex-direction: column; gap: 0.8rem;
+  }
+  .pv-overlay-title { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em; text-transform: uppercase; }
+  .pv-jumplist { max-height: 60vh; }
+  .pv-jump-section {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #7fb8d4; padding: 8px 10px 2px;
+  }
+</style>
+</head>
+<body>
+<div id="presenter-app"></div>
+
+<script src="slides-data.js"></script>
+<script src="slides-common.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const SLIDES = window.MUCOS_SLIDES || [];
+  const COMMON = window.MUCOS_SLIDES_COMMON;
+  let index = COMMON.getIndex(SLIDES.length);
+  let showJump = false;
+  let audienceWin = null;
+  const startTime = Date.now();
+
+  const app = document.getElementById('presenter-app');
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(k => {
+        if (k === 'class') node.className = attrs[k];
+        else if (k === 'text') node.textContent = attrs[k];
+        else if (k.startsWith('on') && typeof attrs[k] === 'function') node.addEventListener(k.slice(2), attrs[k]);
+        else if (typeof attrs[k] === 'boolean') { if (attrs[k]) node.setAttribute(k, ''); else node.removeAttribute(k); }
+        else node.setAttribute(k, attrs[k]);
+      });
+    }
+    (children || []).forEach(c => { if (c) node.appendChild(c); });
+    return node;
+  }
+
+  function goTo(i) {
+    index = COMMON.setIndex(i, SLIDES.length);
+    render();
+  }
+
+  function openAudienceView() {
+    if (!audienceWin || audienceWin.closed) {
+      audienceWin = window.open('index.html', 'mucosAudienceView');
+    } else {
+      audienceWin.focus();
+    }
+  }
+
+  function renderJumpOverlay() {
+    const items = [];
+    let lastSection = null;
+    SLIDES.forEach((s, i) => {
+      if (s.section !== lastSection) {
+        items.push(el('div', { class: 'pv-jump-section', text: s.section || '' }));
+        lastSection = s.section;
+      }
+      items.push(el('button', {
+        class: 'pv-jump-item' + (i === index ? ' active' : ''),
+        type: 'button',
+        text: `${i + 1}. ${s.title}`,
+        onclick: () => { showJump = false; goTo(i); },
+      }));
+    });
+    return el('div', { class: 'pv-overlay', onclick: e => { if (e.target.classList.contains('pv-overlay')) { showJump = false; render(); } } }, [
+      el('div', { class: 'pv-overlay-panel' }, [
+        el('div', { class: 'pv-overlay-title', text: 'Zu Folie springen' }),
+        el('div', { class: 'pv-jumplist' }, items),
+      ]),
+    ]);
+  }
+
+  function render() {
+    const slide = SLIDES[index] || SLIDES[0];
+    const nextSlide = SLIDES[index + 1];
+    app.innerHTML = '';
+
+    app.appendChild(el('header', { class: 'pv-topbar' }, [
+      el('div', { class: 'pv-brand-group' }, [
+        el('img', { class: 'pv-logo', src: '../assets/mucos-logo.jpg', alt: 'MüCOS' }),
+        el('div', { class: 'pv-brand', text: 'MüCOS Open Science — Presenter' }),
+      ]),
+      el('div', { class: 'pv-stats' }, [
+        el('div', {}, [
+          el('div', { class: 'pv-stat-label', text: 'Zeit' }),
+          el('div', { class: 'pv-stat-value', id: 'pv-timer', text: '00:00' }),
+        ]),
+        el('div', {}, [
+          el('div', { class: 'pv-stat-label', text: 'Folie' }),
+          el('div', { class: 'pv-stat-value', text: `${index + 1} / ${SLIDES.length}` }),
+        ]),
+      ]),
+    ]));
+
+    const main = el('div', { class: 'pv-main' }, [
+      el('div', { class: 'pv-current-wrap' }, [
+        el('div', { class: 'pv-current-label', text: 'Aktuell' }),
+        el('iframe', { src: `index.html?slide=${index}`, title: 'Aktuelle Folie' }),
+      ]),
+      el('div', { class: 'pv-side' }, [
+        el('div', { class: 'pv-next-wrap' }, [
+          el('div', { class: 'pv-next-label', text: 'Nächste Folie' }),
+          nextSlide ? el('iframe', { src: `index.html?slide=${index + 1}`, title: 'Nächste Folie' }) : el('div', { style: 'color:#7f8b96;font-size:12px;padding:12px;', text: 'Letzte Folie' }),
+        ]),
+        el('div', { class: 'pv-notes' }, [
+          el('div', { class: 'pv-notes-label', text: 'Sprechernotizen' }),
+          el('div', { class: 'pv-notes-text', text: slide.notes || '(keine Notizen für diese Folie)' }),
+        ]),
+      ]),
+      el('div', { class: 'pv-controls' }, [
+        el('div', { class: 'pv-btn-row' }, [
+          el('button', { class: 'pv-btn secondary', type: 'button', text: '← Zurück', onclick: () => goTo(index - 1), disabled: index === 0 }),
+          el('button', { class: 'pv-btn', type: 'button', text: 'Weiter →', onclick: () => goTo(index + 1), disabled: index === SLIDES.length - 1 }),
+          el('button', { class: 'pv-btn secondary', type: 'button', text: 'Alle Folien', onclick: () => { showJump = true; render(); } }),
+        ]),
+        el('div', { class: 'pv-btn-row' }, [
+          el('button', { class: 'pv-btn secondary', type: 'button', text: 'Publikumsansicht öffnen', onclick: openAudienceView }),
+        ]),
+      ]),
+    ]);
+    app.appendChild(main);
+
+    if (showJump) app.appendChild(renderJumpOverlay());
+  }
+
+  document.addEventListener('keydown', e => {
+    if (showJump) {
+      if (e.key === 'Escape') { showJump = false; render(); }
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(index + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(index - 1); }
+  });
+
+  COMMON.onIndexChange(() => {
+    index = COMMON.getIndex(SLIDES.length);
+    render();
+  });
+
+  setInterval(() => {
+    const el = document.getElementById('pv-timer');
+    if (el) el.textContent = COMMON.formatElapsed(Math.floor((Date.now() - startTime) / 1000));
+  }, 1000);
+
+  render();
+})();
+</script>
+</body>
+</html>
