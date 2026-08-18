@@ -475,6 +475,7 @@
       percentileText: p => `Besser als ${p}% der bisherigen Teilnehmenden.`,
       percentileLoading: 'Perzentile wird berechnet.',
       percentileUnavailable: 'Noch nicht mit einem Google Sheet verbunden. Perzentile und Leaderboard sind im Demo-Modus nicht verfügbar.',
+      demoNote: 'Demo-Modus: Diese Werte basieren auf Beispieldaten, nicht auf echten Teilnehmenden.',
       categoryBreakdownTitle: 'Ergebnis nach Kategorie',
       leaderboardTitle: 'Leaderboard (Top 10)',
       leaderboardLoading: 'Leaderboard wird geladen.',
@@ -518,6 +519,7 @@
       percentileText: p => `Better than ${p}% of previous participants.`,
       percentileLoading: 'Calculating percentile.',
       percentileUnavailable: 'Not yet connected to a Google Sheet. Percentile and leaderboard are unavailable in demo mode.',
+      demoNote: 'Demo mode: these values are based on sample data, not real participants.',
       categoryBreakdownTitle: 'Result by Category',
       leaderboardTitle: 'Leaderboard (Top 10)',
       leaderboardLoading: 'Loading leaderboard.',
@@ -575,6 +577,14 @@
   const CATEGORY_KEYS = window.OS_QUIZ_CATEGORY_KEYS || [];
   const CATEGORY_LABELS = window.OS_QUIZ_CATEGORY_LABELS || { de: {}, en: {} };
   const MAX_SCORE = QUESTIONS.reduce((sum, q) => sum + DIFFICULTY_POINTS[q.difficulty], 0);
+
+  const DEMO_ATTEMPTS = [
+    { nickname: 'Marie', percentScore: 88, durationSeconds: 420 },
+    { nickname: 'Jonas', percentScore: 74, durationSeconds: 510 },
+    { nickname: 'Lena', percentScore: 61, durationSeconds: 380 },
+    { nickname: 'Tom', percentScore: 45, durationSeconds: 600 },
+    { nickname: 'Aylin', percentScore: 30, durationSeconds: 340 },
+  ];
 
   function categoryLabel(key) {
     return (CATEGORY_LABELS[state.lang] && CATEGORY_LABELS[state.lang][key]) || key;
@@ -871,9 +881,28 @@
     state.percentScore = Math.round((state.score / answeredMax) * 100);
     state.percentile = null;
     state.leaderboard = null;
-    state.leaderboardStatus = isSheetConfigured() ? 'loading' : 'unavailable';
-    render();
-    if (isSheetConfigured()) loadLeaderboardThenLog();
+    if (isSheetConfigured()) {
+      state.leaderboardStatus = 'loading';
+      render();
+      loadLeaderboardThenLog();
+    } else {
+      applyLeaderboard(DEMO_ATTEMPTS, 'demo');
+      render();
+    }
+  }
+
+  function applyLeaderboard(attempts, status) {
+    const priorScores = attempts.map(a => Number(a.percentScore)).filter(n => !isNaN(n));
+    const below = priorScores.filter(s => s < state.percentScore).length;
+    state.percentile = priorScores.length > 0 ? Math.round((below / priorScores.length) * 100) : 100;
+
+    const board = attempts
+      .map(a => ({ nickname: a.nickname, percentScore: Number(a.percentScore), durationSeconds: Number(a.durationSeconds) || 0 }))
+      .filter(a => !isNaN(a.percentScore));
+    board.push({ nickname: state.nickname, percentScore: state.percentScore, durationSeconds: state.durationSeconds, isMe: true });
+    board.sort((a, b) => b.percentScore - a.percentScore || a.durationSeconds - b.durationSeconds);
+    state.leaderboard = board.slice(0, 10);
+    state.leaderboardStatus = status;
   }
 
   function fetchAttemptsJsonp(timeoutMs) {
@@ -910,20 +939,9 @@
         const attempts = (data && Array.isArray(data.attempts)) ? data.attempts : null;
         if (attempts === null) {
           state.leaderboardStatus = 'unavailable';
-          render();
-          return;
+        } else {
+          applyLeaderboard(attempts, 'ready');
         }
-        const priorScores = attempts.map(a => Number(a.percentScore)).filter(n => !isNaN(n));
-        const below = priorScores.filter(s => s < state.percentScore).length;
-        state.percentile = priorScores.length > 0 ? Math.round((below / priorScores.length) * 100) : 100;
-
-        const board = attempts
-          .map(a => ({ nickname: a.nickname, percentScore: Number(a.percentScore), durationSeconds: Number(a.durationSeconds) || 0 }))
-          .filter(a => !isNaN(a.percentScore));
-        board.push({ nickname: state.nickname, percentScore: state.percentScore, durationSeconds: state.durationSeconds, isMe: true });
-        board.sort((a, b) => b.percentScore - a.percentScore || a.durationSeconds - b.durationSeconds);
-        state.leaderboard = board.slice(0, 10);
-        state.leaderboardStatus = 'ready';
         render();
       })
       .finally(() => {
@@ -1058,6 +1076,9 @@
     ];
     if (state.percentile !== null) {
       summaryChildren.push(el('p', { class: 'os-info-note', text: t('percentileText', state.percentile) }));
+      if (state.leaderboardStatus === 'demo') {
+        summaryChildren.push(el('p', { class: 'os-info-note', text: t('demoNote') }));
+      }
     } else if (state.leaderboardStatus === 'loading') {
       summaryChildren.push(el('p', { class: 'os-info-note', text: t('percentileLoading') }));
     } else if (state.leaderboardStatus === 'unavailable') {
@@ -1067,7 +1088,7 @@
     const leaderboardSection = [
       el('div', { class: 'os-section-title', text: t('leaderboardTitle') }),
     ];
-    if (state.leaderboardStatus === 'ready' && state.leaderboard) {
+    if ((state.leaderboardStatus === 'ready' || state.leaderboardStatus === 'demo') && state.leaderboard) {
       const rows = state.leaderboard.map((row, i) => el('tr', { class: row.isMe ? 'os-me' : '' }, [
         el('td', { text: String(i + 1) }),
         el('td', { text: row.nickname || '–' }),
