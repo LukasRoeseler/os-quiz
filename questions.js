@@ -71,8 +71,8 @@ window.OS_QUIZ_QUESTIONS = [
     },
     en: {
       question: 'Which of the following belong to Robert Merton\'s four norms of science? (Multiple answers possible.)',
-      choices: ['Universalism', 'Autonomy', 'Organized Skepticism', 'Disinterestedness', 'Excellence', 'Communalism'],
-      explanation: 'Merton\'s four norms are Communalism (scientific knowledge belongs jointly to all scientists), Universalism, Disinterestedness, and Organized Skepticism. "Autonomy" and "Excellence" are often discussed in Open Science debates but are not among these four norms.',
+      choices: ['Universalism', 'Autonomy', 'Organized Skepticism', 'Disinterestedness', 'Excellence', 'Communism'],
+      explanation: 'Merton\'s four norms are Communism (scientific knowledge belongs jointly to all scientists), Universalism, Disinterestedness, and Organized Skepticism. "Autonomy" and "Excellence" are often discussed in Open Science debates but are not among these four norms.',
     },
   },
   {

@@ -5,8 +5,12 @@
 // (or, for the GitHub Pages build, into the repo secret SHEET_WEBHOOK_URL).
 //
 // doPost appends one row per finished quiz attempt.
-// doGet returns all attempts as JSON, used by the app to build the
-// leaderboard and compute the player's percentile.
+// doGet returns all attempts as JSON (or, if called with a "callback"
+// query parameter, as JSONP) used by the app to build the leaderboard
+// and compute the player's percentile. JSONP is used from the frontend
+// because Apps Script web app responses are frequently not readable via
+// a cross-origin fetch() due to missing CORS headers on the redirected
+// response; a <script> tag is exempt from that restriction.
 
 const HEADERS = [
   'timestamp', 'sessionId', 'nickname', 'totalScore', 'maxScore',
@@ -29,16 +33,20 @@ function doPost(e) {
 function doGet(e) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return ContentService.createTextOutput(JSON.stringify({ attempts: [] }))
-      .setMimeType(ContentService.MimeType.JSON);
+  let attempts = [];
+  if (lastRow >= 2) {
+    const values = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
+    attempts = values.map(row => {
+      const obj = {};
+      HEADERS.forEach((h, i) => { obj[h] = row[i]; });
+      return obj;
+    });
   }
-  const values = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
-  const attempts = values.map(row => {
-    const obj = {};
-    HEADERS.forEach((h, i) => { obj[h] = row[i]; });
-    return obj;
-  });
-  return ContentService.createTextOutput(JSON.stringify({ attempts }))
-    .setMimeType(ContentService.MimeType.JSON);
+  const payload = JSON.stringify({ attempts });
+  const callback = e && e.parameter && e.parameter.callback;
+  if (callback && /^[a-zA-Z0-9_]+$/.test(callback)) {
+    return ContentService.createTextOutput(callback + '(' + payload + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(payload).setMimeType(ContentService.MimeType.JSON);
 }

@@ -876,11 +876,43 @@
     if (isSheetConfigured()) loadLeaderboardThenLog();
   }
 
+  function fetchAttemptsJsonp(timeoutMs) {
+    // A cross-origin fetch() GET against an Apps Script web app is frequently
+    // blocked by CORS (the redirected response often lacks the header), while
+    // a <script> tag is exempt from that restriction. doGet returns JSONP
+    // when called with a "callback" query parameter.
+    return new Promise(resolve => {
+      const cbName = 'osQuizCb_' + Math.random().toString(36).slice(2);
+      let done = false;
+      const script = document.createElement('script');
+      const cleanup = () => {
+        delete window[cbName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      };
+      const finish = data => {
+        if (done) return;
+        done = true;
+        cleanup();
+        resolve(data);
+      };
+      window[cbName] = finish;
+      const sep = SHEET_WEBHOOK_URL.includes('?') ? '&' : '?';
+      script.src = SHEET_WEBHOOK_URL + sep + 'callback=' + cbName;
+      script.onerror = () => finish(null);
+      document.body.appendChild(script);
+      setTimeout(() => finish(null), timeoutMs || 8000);
+    });
+  }
+
   function loadLeaderboardThenLog() {
-    fetch(SHEET_WEBHOOK_URL)
-      .then(r => r.json())
+    fetchAttemptsJsonp()
       .then(data => {
-        const attempts = (data && Array.isArray(data.attempts)) ? data.attempts : [];
+        const attempts = (data && Array.isArray(data.attempts)) ? data.attempts : null;
+        if (attempts === null) {
+          state.leaderboardStatus = 'unavailable';
+          render();
+          return;
+        }
         const priorScores = attempts.map(a => Number(a.percentScore)).filter(n => !isNaN(n));
         const below = priorScores.filter(s => s < state.percentScore).length;
         state.percentile = priorScores.length > 0 ? Math.round((below / priorScores.length) * 100) : 100;
@@ -892,10 +924,6 @@
         board.sort((a, b) => b.percentScore - a.percentScore || a.durationSeconds - b.durationSeconds);
         state.leaderboard = board.slice(0, 10);
         state.leaderboardStatus = 'ready';
-        render();
-      })
-      .catch(() => {
-        state.leaderboardStatus = 'unavailable';
         render();
       })
       .finally(() => {
