@@ -499,7 +499,7 @@
       debugBtn: 'Debug: Zum Ergebnis springen',
       tableRank: '#',
       tableName: 'Spitzname',
-      tableResult: 'Ergebnis',
+      tableResult: 'Punkte',
       durationFormat: (m, s) => (m > 0 ? `${m}m ${s}s` : `${s}s`),
       summaryTitle: 'Zusammenfassung: Open Science Quiz',
       summaryPlayer: 'Spieler*in',
@@ -543,7 +543,7 @@
       debugBtn: 'Debug: jump to result',
       tableRank: '#',
       tableName: 'Nickname',
-      tableResult: 'Score',
+      tableResult: 'Points',
       durationFormat: (m, s) => (m > 0 ? `${m}m ${s}s` : `${s}s`),
       summaryTitle: 'Summary: Open Science Quiz',
       summaryPlayer: 'Player',
@@ -593,11 +593,11 @@
   const MAX_SCORE = QUESTIONS.reduce((sum, q) => sum + DIFFICULTY_POINTS[q.difficulty], 0);
 
   const DEMO_ATTEMPTS = [
-    { nickname: 'Marie', percentScore: 88, durationSeconds: 420 },
-    { nickname: 'Jonas', percentScore: 74, durationSeconds: 510 },
-    { nickname: 'Lena', percentScore: 61, durationSeconds: 380 },
-    { nickname: 'Tom', percentScore: 45, durationSeconds: 600 },
-    { nickname: 'Aylin', percentScore: 30, durationSeconds: 340 },
+    { nickname: 'Marie', totalScore: 79, maxScore: 90, percentScore: 88, durationSeconds: 420 },
+    { nickname: 'Jonas', totalScore: 67, maxScore: 90, percentScore: 74, durationSeconds: 510 },
+    { nickname: 'Lena', totalScore: 55, maxScore: 90, percentScore: 61, durationSeconds: 380 },
+    { nickname: 'Tom', totalScore: 41, maxScore: 90, percentScore: 46, durationSeconds: 600 },
+    { nickname: 'Aylin', totalScore: 27, maxScore: 90, percentScore: 30, durationSeconds: 340 },
   ];
 
   function categoryLabel(key) {
@@ -898,8 +898,8 @@
   function finishQuiz() {
     state.screen = 'result';
     state.durationSeconds = Math.round((Date.now() - state.startTime) / 1000);
-    const answeredMax = Object.values(state.perCategory).reduce((s, c) => s + c.max, 0) || MAX_SCORE;
-    state.percentScore = Math.round((state.score / answeredMax) * 100);
+    state.answeredMax = Object.values(state.perCategory).reduce((s, c) => s + c.max, 0) || MAX_SCORE;
+    state.percentScore = Math.round((state.score / state.answeredMax) * 100);
     state.percentile = null;
     state.leaderboard = null;
     if (isSheetConfigured()) {
@@ -918,10 +918,21 @@
     state.percentile = priorScores.length > 0 ? Math.round((below / priorScores.length) * 100) : 100;
 
     const board = attempts
-      .map(a => ({ nickname: a.nickname, percentScore: Number(a.percentScore), durationSeconds: Number(a.durationSeconds) || 0 }))
-      .filter(a => !isNaN(a.percentScore));
-    board.push({ nickname: state.nickname, percentScore: state.percentScore, durationSeconds: state.durationSeconds, isMe: true });
-    board.sort((a, b) => b.percentScore - a.percentScore || a.durationSeconds - b.durationSeconds);
+      .map(a => ({
+        nickname: a.nickname,
+        totalScore: Number(a.totalScore),
+        maxScore: Number(a.maxScore) || MAX_SCORE,
+        durationSeconds: Number(a.durationSeconds) || 0,
+      }))
+      .filter(a => !isNaN(a.totalScore));
+    board.push({
+      nickname: state.nickname,
+      totalScore: state.score,
+      maxScore: state.answeredMax,
+      durationSeconds: state.durationSeconds,
+      isMe: true,
+    });
+    board.sort((a, b) => b.totalScore - a.totalScore || a.durationSeconds - b.durationSeconds);
     state.leaderboard = board.slice(0, 10);
     state.leaderboardStatus = status;
   }
@@ -1113,7 +1124,7 @@
       const rows = state.leaderboard.map((row, i) => el('tr', { class: row.isMe ? 'os-me' : '' }, [
         el('td', { text: String(i + 1) }),
         el('td', { text: row.nickname || '–' }),
-        el('td', { text: row.percentScore + '%' }),
+        el('td', { text: `${row.totalScore}/${row.maxScore}` }),
       ]));
       leaderboardSection.push(el('table', { class: 'os-leaderboard' }, [
         el('thead', {}, [el('tr', {}, [
